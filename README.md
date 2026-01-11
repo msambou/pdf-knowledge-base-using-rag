@@ -4,7 +4,7 @@
 This is a classic RAG where users can upload PDF documents and ask questions to the LLM about the content of the PDF. Good for documents pertaining to policies, contracts, etc. where users want quick questions to be answered factually.
 
 ## Why?
-It's time consuming to have to go through enitre lenghty contract or policy documents just to answer a simple question like, "By doing XYZ, I'm following the compliant rules?". Using RAG with LLM have made it easier to query documents directly in a short period of time.
+It's time consuming to have to go through enitre lengthy contract or policy documents just to answer a simple question like, "By doing XYZ, I'm following the compliant rules?". Using RAG with LLM have made it easier to query documents directly in a short period of time.
 
 ## How?
 I'll use an LLM as the reasoning layer and RAG for document retrieval. I'll not be relying on the LLM's memory. 
@@ -72,4 +72,3 @@ Now you assemble a prompt like:
 > **Question**
 >
 > “What documents are required for reimbursement?”
-
