@@ -5,3 +5,4 @@ class DocumentChunk(BaseModel):
     source: str        # filename
     page: int
     chunk_id: int
+    embedding_id: int | None = None
