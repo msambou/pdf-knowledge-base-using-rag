@@ -9,6 +9,9 @@ from app.services.chunking import chunk_text
 from app.services.embeddings import EmbeddingService
 from app.services.vector_store import VectorStore
 
+from app.models.query import QueryRequest
+from app.models.query_result import QueryResult
+
 
 app = FastAPI()
 
@@ -20,57 +23,102 @@ def healthcheck():
     text = "Ok"
     return TextOutput(text=text, length=len(text))
 
-@app.get("/chat")
-def chat():
-    text = "Invoking chat"
-    ollama_response = invoke_chat()
-    print(ollama_response)
-    return TextOutput(text=text, length=len(text))
-
-
-@app.post("/echo", response_model=EchoResponse)
-def echo(file: UploadFile = File(...)):
+@app.post("/ingest")
+def ingest(file: UploadFile = File(...)):
     reader = PdfReader(file.file)
 
-    chunks = []
     texts = []
     metadatas = []
 
-    chunk_id = 0
-
     for page_number, page in enumerate(reader.pages):
         page_text = page.extract_text() or ""
-
         page_chunks = chunk_text(page_text)
 
-        for text in page_chunks:
+        for i, text in enumerate(page_chunks):
             if text.strip():
                 texts.append(text)
-                chunks.append(
-                    DocumentChunk(
-                        text=text,
-                        source=file.filename,
-                        page=page_number + 1,
-                        chunk_id=chunk_id,
-                        embedding_id=chunk_id,
-                    )
-                )
                 metadatas.append({
                     "source": file.filename,
                     "page": page_number + 1,
-                    "chunk_id": chunk_id,
+                    "chunk_id": len(texts) - 1,
                 })
-                chunk_id += 1
 
     embeddings = embedding_service.embed_texts(texts)
     vector_store.add(embeddings, texts, metadatas)
 
-    # query = "kubernetes"
-    # query_embedding = embedding_service.embed_texts([query])
-    # results = vector_store.search(query_embedding, k=3)
-    # print(results)
+    return {
+        "filename": file.filename,
+        "chunks_indexed": len(texts),
+    }
 
-    return EchoResponse(
-        filename=file.filename,
-        chunks=chunks,
-    )
+
+@app.post("/query", response_model=list[QueryResult])
+def query(request: QueryRequest):
+    query_embedding = embedding_service.embed_texts([request.question])
+    results = vector_store.search(query_embedding, k=request.k)
+
+    return [
+        QueryResult(
+            text=r["text"],
+            source=r["metadata"]["source"],
+            page=r["metadata"]["page"],
+            chunk_id=r["metadata"]["chunk_id"],
+        )
+        for r in results
+    ]
+
+
+# @app.get("/chat")
+# def chat():
+#     text = "Invoking chat"
+#     ollama_response = invoke_chat()
+#     print(ollama_response)
+#     return TextOutput(text=text, length=len(text))
+
+
+# @app.post("/echo", response_model=EchoResponse)
+# def echo(file: UploadFile = File(...)):
+#     reader = PdfReader(file.file)
+
+#     chunks = []
+#     texts = []
+#     metadatas = []
+
+#     chunk_id = 0
+
+#     for page_number, page in enumerate(reader.pages):
+#         page_text = page.extract_text() or ""
+
+#         page_chunks = chunk_text(page_text)
+
+#         for text in page_chunks:
+#             if text.strip():
+#                 texts.append(text)
+#                 chunks.append(
+#                     DocumentChunk(
+#                         text=text,
+#                         source=file.filename,
+#                         page=page_number + 1,
+#                         chunk_id=chunk_id,
+#                         embedding_id=chunk_id,
+#                     )
+#                 )
+#                 metadatas.append({
+#                     "source": file.filename,
+#                     "page": page_number + 1,
+#                     "chunk_id": chunk_id,
+#                 })
+#                 chunk_id += 1
+
+#     embeddings = embedding_service.embed_texts(texts)
+#     vector_store.add(embeddings, texts, metadatas)
+
+#     # query = "kubernetes"
+#     # query_embedding = embedding_service.embed_texts([query])
+#     # results = vector_store.search(query_embedding, k=3)
+#     # print(results)
+
+#     return EchoResponse(
+#         filename=file.filename,
+#         chunks=chunks,
+#     )
