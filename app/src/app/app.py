@@ -4,7 +4,6 @@ from fastapi import FastAPI, UploadFile, File # type: ignore
 from app.models.models import TextOutput
 from app.models.chunk import DocumentChunk
 from app.models.output import EchoResponse
-from app.chat import invoke_chat
 from app.services.chunking import chunk_text
 from app.services.embeddings import EmbeddingService
 from app.services.vector_store import VectorStore
